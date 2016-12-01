@@ -17,17 +17,17 @@ while(1):
     lower_blue = np.array([110,100,100])
     upper_blue = np.array([130,255,255])
     # green
-    lower_green = np.array([50,100,100])
-    upper_green = np.array([70,255,255])
-    # red
-    lower_red = np.array([0,0,255])
-    upper_red = np.array([10,255,255])
+    # lower_green = np.array([0,00,100])
+    # upper_green = np.array([70,255,255])
+    # # red
+    # lower_red = np.array([0,0,255])
+    # upper_red = np.array([10,255,255])
 
     # Threshold the HSV image to get blue colors and green colors and red
     blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
-    green_mask = cv2.inRange(hsv, lower_green, upper_green)
-    red_mask = cv2.inRange(hsv, lower_red, upper_red)
-    mask = blue_mask + green_mask + red_mask
+    #green_mask = cv2.inRange(hsv, lower_green, upper_green)
+    #red_mask = cv2.inRange(hsv, lower_red, upper_red)
+    mask = blue_mask #+ green_mask + red_mask
 
     # Bitwise-AND mask and original image
     res = cv2.bitwise_and(frame,frame, mask= mask)
