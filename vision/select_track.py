@@ -1,5 +1,7 @@
 from SimpleCV import *
 from matplotlib import pyplot
+from math import degrees, pi
+from numpy import arctan2
 
 def foo(image):
     return image.meanColor()
@@ -25,6 +27,9 @@ def camshift():
             coordset = fs1[-1]
             angleLayer = DrawingLayer((img.width, img.height))
             angleLayer.lines([center_point, (coordset.x, coordset.y)])
+            angleLayer.lines([(0, img.height/2), (img.width, img.height/2)])
+            angle = degrees(arctan2(coordset.x - center_point[0], coordset.y - center_point[1]) - pi/2.0) % 360
+            
             fs1.drawBB()
             #fs1.drawPath()
             fs1.draw()
@@ -33,6 +38,7 @@ def camshift():
             img1.addDrawingLayer(circleLayer)
             img1.addDrawingLayer(angleLayer)
             img1.applyLayers()
+            img1.drawText("Angle: " + str(angle))
             img1.show()
         except KeyboardInterrupt:
             print "\nTracked frames: ",
