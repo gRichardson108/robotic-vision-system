@@ -22,12 +22,16 @@ def camshift():
         try:
             img1 = cam.getImage()
             fs1 = img1.track("camshift",fs1,img,bb1,num_frames=5, nframes=60, lower=(120, 40, 40), upper=(180, 200, 200))
+            coordset = fs1[-1]
+            angleLayer = DrawingLayer((img.width, img.height))
+            angleLayer.lines([center_point, (coordset.x, coordset.y)])
             fs1.drawBB()
             #fs1.drawPath()
             fs1.draw()
             fs1.showCoordinates()
             fs1.showSizeRatio()
             img1.addDrawingLayer(circleLayer)
+            img1.addDrawingLayer(angleLayer)
             img1.applyLayers()
             img1.show()
         except KeyboardInterrupt:
