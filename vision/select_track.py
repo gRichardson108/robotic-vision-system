@@ -1,4 +1,5 @@
 from SimpleCV import *
+from matplotlib import pyplot
 
 def foo(image):
     return image.meanColor()
@@ -6,17 +7,28 @@ def foo(image):
 def camshift():
     cam = Camera()
     img = cam.getImage()
+    histogram = img.hueHistogram()
+    print histogram
+    pyplot.plot(histogram)
+    pyplot.show()
+    center_point = (img.width/2, img.height/2)
+    circleLayer = DrawingLayer((img.width,img.height))
+    circleLayer.circle(center_point, 10)
     d = Display(img.size())
     bb1 = getBBFromUser(cam,d)
+    print "Bounding Box Selected"
     fs1=[]
     while True:
         try:
             img1 = cam.getImage()
-            fs1 = img1.track("camshift",fs1,img,bb1,num_frames=5, nframes=60, lower=(0, 40, 40), upper=(80, 200, 200))
+            fs1 = img1.track("camshift",fs1,img,bb1,num_frames=5, nframes=60, lower=(120, 40, 40), upper=(180, 200, 200))
             fs1.drawBB()
-            fs1.drawPath()
+            #fs1.drawPath()
+            fs1.draw()
             fs1.showCoordinates()
             fs1.showSizeRatio()
+            img1.addDrawingLayer(circleLayer)
+            img1.applyLayers()
             img1.show()
         except KeyboardInterrupt:
             print "\nTracked frames: ",
