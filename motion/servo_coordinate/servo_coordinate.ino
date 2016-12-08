@@ -38,10 +38,14 @@ void setup() {
 }
 
 void loop() {
-	if (!parseMessage(message)) {
+	if (!parseMessage(message) && millis() % 100 == 0) {
 		moveAll(message[0], message[1], 120);
 		int output = twist->read() - SERVO_CALIBRATE;
 		Serial.println(output);
+	}
+	else
+	{
+		Serial.flush();
 	}
 	
 }
