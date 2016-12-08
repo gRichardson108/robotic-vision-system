@@ -40,9 +40,16 @@ void setup() {
 void loop() {
 	if (!parseMessage(message)) {
 		moveAll(message[0], message[1], 120);
-		int output = twist->read() - SERVO_CALIBRATE;
-		Serial.println(output);
+                int output = twist->read() - SERVO_CALIBRATE;
+		Serial.print("x: ");
+                Serial.print(message[0]);
+                Serial.print(" y: ");
+                Serial.print(message[1]);
+                Serial.print(" degrees: ");
+                Serial.print(output);
+                Serial.print('\n');
 	}
+	
 }
 
 void moveAll(float x, float y, float theta) {
@@ -106,24 +113,29 @@ void pointOnPlain(Servo* servo, float ObjX, float ObjY) {
 	angleDeg = fmod(abs(angleDeg), 360) + SERVO_CALIBRATE;
 
 	servo->write(clamp(angleDeg, SERVO_MIN, SERVO_MAX));
-	delay(100);
+	delay(400);
 }
 
 bool parseMessage(float output[3]) {
-	char c = 0;
-	if (Serial.available() <= 0) {
-		return false;
-	}
-	else {
-		c = Serial.read();
-	
-		if (c != '<') {
-			return false;
-		}
-		for (int i = 0; i < /*3*/ 2; i++) {
-			output[i] = Serial.parseFloat();
+	int i = 0;
+        char coordBuffer[30];
+        char * parsed = NULL;
+        
+	if (Serial.available()) {
+		delay(50);
+                while ( Serial.available() && i < 99){
+                  coordBuffer[i++] = Serial.read();
+                }
+                coordBuffer[i++] = '\0';
+               
+                parsed = strtok(coordBuffer, " <,>");
+		for (int i = 0; parsed != NULL && i < /*3*/ 2; i++) {
+			output[i] = atof(parsed);
+                        parsed = strtok(NULL, " <,>");
 		}
 		return true;
-	}
+	} else {
+          return false;
+}
 }
 

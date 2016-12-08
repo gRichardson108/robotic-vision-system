@@ -19,11 +19,13 @@ def camshift():
     circleLayer = DrawingLayer((img.width,img.height))
     circleLayer.circle(center_point, 10, Color.GOLD, 1, True)
     d = Display(img.size())
-    bb1 = getBoundingBoxFromUser(cam,d)
-    print "Bounding Box Selected"
-    img = cam.getImage()
-    selectedRegion = img.regionSelect(bb1[0],bb1[1],bb1[2]+bb1[0], bb1[3]+bb1[2])
-    selectionHue = getHueValue(selectedRegion)
+    selectionHue = False
+    while selectionHue == False:
+        bb1 = getBoundingBoxFromUser(cam,d)
+        print "Bounding Box Selected"
+        img = cam.getImage()
+        selectedRegion = img.regionSelect(bb1[0],bb1[1],bb1[2]+bb1[0], bb1[3]+bb1[2])
+        selectionHue = getHueValue(selectedRegion)
 
     selectedRegion.save("region-select.png")    
 
@@ -32,8 +34,26 @@ def camshift():
     print "SelectionHue: " + str(selectionHue) + " minHue: " + str(minHue) + " maxHue: " + str(maxHue)
     
     fs1=[]
-    while True:
+    while d.isNotDone():
         try:
+            reset = d.mouseRight
+            if (reset):
+                print "Resetting bounding box"
+                selectionHue = False
+                while selectionHue == False:
+                    bb1 = getBoundingBoxFromUser(cam,d)
+                    print "Bounding Box Selected"
+                    img = cam.getImage()
+                    selectedRegion = img.regionSelect(bb1[0],bb1[1],bb1[2]+bb1[0], bb1[3]+bb1[2])
+                    selectionHue = getHueValue(selectedRegion)
+
+                selectedRegion.save("region-select.png")
+
+                minHue = np.maximum(selectionHue - 10, 0)
+                maxHue = np.minimum(selectionHue + 10, 180)#openCV does hue from 0 to 180
+                print "SelectionHue: " + str(selectionHue) + " minHue: " + str(minHue) + " maxHue: " + str(maxHue)
+     
+            
             img1 = cam.getImage()
             fs1 = img1.track("camshift",fs1,img,bb1,num_frames=5, nframes=60, lower=(minHue, 40, 20), upper=(maxHue, 255, 255))
             coordset = fs1[-1]
@@ -56,17 +76,20 @@ def camshift():
 
             currentTime = time.time() - lastTime
             if (currentTime > .05):
-                coordString = "<" + str(coordset.x - center_point[0]) + "," + str(coordset.y - center_point[1]) + ",0>\n"
-                print coordString
+                coordString = "<" + str(coordset.x - center_point[0]) + ", " + str(coordset.y - center_point[1]) + ", 0>\n"
                 ser.write(coordString)
                 lastTime = time.time()
                 currentTime = lastTime
+                
         except KeyboardInterrupt:
             print "\nTracked frames: ",
             print fs1.trackLength()
             print fs1.processTrack(foo)
             ser.close()
             break
+        except Exception:
+            if (ser.is_open):
+                ser.close()
 
 def showCroppedImage():
     cam = Camera(1)
@@ -137,8 +160,12 @@ def selectImageByBox(image, display):
 def getHueValue(image):
     peaks = image.huePeaks()
     print(peaks)
-    sorted(peaks, key=lambda p: p[1])
-    return peaks[0][0]
+    if (len(peaks) >= 1):
+        peaks = sorted(peaks, key=lambda p: p[1], reverse=True)
+        print(peaks)
+        return peaks[0][0]
+    else: 
+        return False
 
 camshift()
 #showCroppedImage()
