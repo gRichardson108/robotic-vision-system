@@ -13,11 +13,11 @@ def camshift():
     print ser.name
 
     lastTime = time.time()
-    cam = Camera(1)
+    cam = Camera()
     img = cam.getImage()
     center_point = (img.width/2, 9*img.height/10)
     circleLayer = DrawingLayer((img.width,img.height))
-    circleLayer.circle(center_point, 10)
+    circleLayer.circle(center_point, 10, Color.GOLD, 1, True)
     d = Display(img.size())
     bb1 = getBoundingBoxFromUser(cam,d)
     print "Bounding Box Selected"
@@ -25,19 +25,21 @@ def camshift():
     selectedRegion = img.regionSelect(bb1[0],bb1[1],bb1[2]+bb1[0], bb1[3]+bb1[2])
     selectionHue = getHueValue(selectedRegion)
 
+    selectedRegion.save("region-select.png")    
+
     minHue = np.maximum(selectionHue - 10, 0)
-    maxHue = np.minimum(selectionHue + 10, 255)
+    maxHue = np.minimum(selectionHue + 10, 180)#openCV does hue from 0 to 180
     print "SelectionHue: " + str(selectionHue) + " minHue: " + str(minHue) + " maxHue: " + str(maxHue)
     
     fs1=[]
     while True:
         try:
             img1 = cam.getImage()
-            fs1 = img1.track("camshift",fs1,img,bb1,num_frames=5, nframes=60, lower=(minHue, 20, 20), upper=(maxHue, 255, 200))
+            fs1 = img1.track("camshift",fs1,img,bb1,num_frames=5, nframes=60, lower=(minHue, 40, 20), upper=(maxHue, 255, 255))
             coordset = fs1[-1]
             angleLayer = DrawingLayer((img.width, img.height))
-            angleLayer.lines([center_point, (coordset.x, coordset.y)])
-            angleLayer.lines([(0, center_point[1]), (img.width, center_point[1])])
+            angleLayer.lines([center_point, (coordset.x, coordset.y)], Color.RED, True, -1, 2)
+            angleLayer.lines([(0, center_point[1]), (img.width, center_point[1])], Color.MAROON, True, -1, 2)
             angle = degrees(arctan2(coordset.x - center_point[0], coordset.y - center_point[1]) - pi/2.0) % 360
             
             fs1.drawBB()
@@ -53,7 +55,7 @@ def camshift():
 
 
             currentTime = time.time() - lastTime
-            if (currentTime > .1):
+            if (currentTime > .05):
                 coordString = "<" + str(coordset.x - center_point[0]) + "," + str(coordset.y - center_point[1]) + ",0>\n"
                 print coordString
                 ser.write(coordString)

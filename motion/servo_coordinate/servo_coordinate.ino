@@ -106,7 +106,7 @@ void pointOnPlain(Servo* servo, float ObjX, float ObjY) {
 	angleDeg = fmod(abs(angleDeg), 360) + SERVO_CALIBRATE;
 
 	servo->write(clamp(angleDeg, SERVO_MIN, SERVO_MAX));
-	delay(400);
+	delay(100);
 }
 
 bool parseMessage(float output[3]) {
