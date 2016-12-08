@@ -416,3 +416,5 @@ paket-files/
 
 ### VisualStudio Patch ###
 
+motion/servo_coordinate/__vm/*
+motion/servo_coordinate/Debug/servo_coordinate.tlog
