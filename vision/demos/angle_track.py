@@ -2,21 +2,27 @@ from SimpleCV import *
 from matplotlib import pyplot
 from math import degrees, pi
 from numpy import arctan2
+import serial
 
 
 def foo(image):
     return image.meanColor()
 
 def camshift():
+    ser = serial.Serial("/dev/ttyACM0")
+    print ser.name
+
+    lastTime = time.time()
     cam = Camera(1)
     img = cam.getImage()
-    center_point = (img.width/2, img.height/2)
+    center_point = (img.width/2, 9*img.height/10)
     circleLayer = DrawingLayer((img.width,img.height))
     circleLayer.circle(center_point, 10)
     d = Display(img.size())
     bb1 = getBoundingBoxFromUser(cam,d)
     print "Bounding Box Selected"
-    selectedRegion = img.regionSelect(bb1[0],bb1[1],bb1[2]-bb1[0], bb1[3]-bb1[2])
+    img = cam.getImage()
+    selectedRegion = img.regionSelect(bb1[0],bb1[1],bb1[2]+bb1[0], bb1[3]+bb1[2])
     selectionHue = getHueValue(selectedRegion)
 
     minHue = np.maximum(selectionHue - 10, 0)
@@ -31,7 +37,7 @@ def camshift():
             coordset = fs1[-1]
             angleLayer = DrawingLayer((img.width, img.height))
             angleLayer.lines([center_point, (coordset.x, coordset.y)])
-            angleLayer.lines([(0, img.height/2), (img.width, img.height/2)])
+            angleLayer.lines([(0, center_point[1]), (img.width, center_point[1])])
             angle = degrees(arctan2(coordset.x - center_point[0], coordset.y - center_point[1]) - pi/2.0) % 360
             
             fs1.drawBB()
@@ -44,10 +50,20 @@ def camshift():
             img1.applyLayers()
             img1.drawText("Angle: " + str(angle))
             img1.show()
+
+
+            currentTime = time.time() - lastTime
+            if (currentTime > .1):
+                coordString = "<" + str(coordset.x - center_point[0]) + "," + str(coordset.y - center_point[1]) + ",0>\n"
+                print coordString
+                ser.write(coordString)
+                lastTime = time.time()
+                currentTime = lastTime
         except KeyboardInterrupt:
             print "\nTracked frames: ",
             print fs1.trackLength()
             print fs1.processTrack(foo)
+            ser.close()
             break
 
 def showCroppedImage():
