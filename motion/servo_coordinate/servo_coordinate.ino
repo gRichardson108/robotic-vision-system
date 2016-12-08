@@ -38,16 +38,11 @@ void setup() {
 }
 
 void loop() {
-	if (!parseMessage(message) && millis() % 100 == 0) {
+	if (!parseMessage(message)) {
 		moveAll(message[0], message[1], 120);
 		int output = twist->read() - SERVO_CALIBRATE;
 		Serial.println(output);
 	}
-	else
-	{
-		Serial.flush();
-	}
-	
 }
 
 void moveAll(float x, float y, float theta) {
@@ -116,7 +111,7 @@ void pointOnPlain(Servo* servo, float ObjX, float ObjY) {
 
 bool parseMessage(float output[3]) {
 	char c = 0;
-	if (!Serial.available()) {
+	if (Serial.available() <= 0) {
 		return false;
 	}
 	else {
