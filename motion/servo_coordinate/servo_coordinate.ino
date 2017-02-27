@@ -47,7 +47,7 @@ void loop() {
 		Serial.println(message[1]);
 		Serial.println(output);
 		Serial.println();
-		delay(250);
+		delay(10);
 	}
 }
 
@@ -139,4 +139,5 @@ bool parseMessage(float output[2]) {
 		return true;
 	}
 }
+
 
