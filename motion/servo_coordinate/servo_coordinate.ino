@@ -52,9 +52,9 @@ void loop() {
 }
 
 void moveAll(float arm_angle, float theta) {
-  if ((arm_angle > SERVO_MAX) && (arm_angle <= 180)) 
+  if (arm_angle > SERVO_MAX)
     arm_angle = SERVO_MAX;
-  else if ((arm_angle >= 0) && (arm_angle < SERVO_MIN)) 
+  else if (arm_angle < SERVO_MIN) 
     arm_angle = SERVO_MIN;
 
 	twist->write(arm_angle);
