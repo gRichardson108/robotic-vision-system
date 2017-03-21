@@ -21,7 +21,7 @@ void setup() {
 
   pinMode(Joy_sw01, INPUT_PULLUP);
 
-
+  Serial.begin(9600);
 }
 
 void loop() {
@@ -49,7 +49,7 @@ void loop() {
   }
 
   if (analogRead(Joy_01) > 540) {  //  If joystick is moved Left 712
-    if (!digitalRead(Limit01) && emergency_stop == 0) {}  // check if limit switch is activated
+    if (!digitalRead(Limit01) || emergency_stop != 0) {}  // check if limit switch is activated
 
     else {  //  if limit switch is not activated, move motor clockwise
 
@@ -63,7 +63,7 @@ void loop() {
 
   if (analogRead(Joy_01) < 490) {  // If joystick is moved right 312
 
-    if (!digitalRead(Limit02)  && emergency_stop == 0) {}  // check if limit switch is activated
+    if (!digitalRead(Limit02) || emergency_stop != 0) {}  // check if limit switch is activated
 
     else {  //  if limit switch is not activated, move motor counter clockwise
 
