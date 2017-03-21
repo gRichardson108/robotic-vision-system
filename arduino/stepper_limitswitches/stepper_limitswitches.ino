@@ -3,7 +3,6 @@
 
 #define Joy_01 A3    // Pin A3 connected to joystick x axis
 #define Joy_sw01 11  // Pin 11 connected to joystick switch
-#define Joy_sw02 12  // Pin 11 connected to joystick switch
 
 
 #define Limit01 23  // Pin 23 connected to Limit switch out
