@@ -1,3 +1,6 @@
+#include <MultiStepper.h>
+#include <AccelStepper.h>
+
 #define step_pin 3  // Pin 9 connected to Steps pin on EasyDriver
 #define dir_pin 2  // Pin 8 connected to Direction pin
 
@@ -11,6 +14,9 @@
 int step_speed = 1;  // Speed of Stepper motor (higher = slower)
 int emergency_stop = 0; // when not 0, all motors must be stopped
 char received_char;
+
+AccelStepper mShoulder;
+
 void setup() {
   pinMode(dir_pin, OUTPUT);
   pinMode(step_pin, OUTPUT);
