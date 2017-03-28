@@ -3,29 +3,28 @@
 
 //Shoulder
 #define shoulder_index 1
-#define shoulder_step_pin 3
-#define shoulder_dir_pin 2
+#define shoulder_step_pin 7
+#define shoulder_dir_pin 4
 #define shoulder_lim_cw_pin 23
 #define shoulder_lim_ccw_pin 22
-#define shoulder_joy_x_pin A3
+#define shoulder_joy_x_pin A0
 #define shoulder_joy_sw_pin 11
-
-
+#define shoulder_max_speed 3000.0
 //Base
 #define base_index 0
 #define base_step_pin 9
 #define base_dir_pin 8
 #define base_lim_cw_pin 31
 #define base_lim_ccw_pin 30
-#define base_joy_x_pin A0
+#define base_joy_x_pin A3
 #define base_joy_sw_pin 12
-
+#define base_max_speed 2000.0
 
 #define E_STOP_INTERRUPT 0
 #define E_STOP_VETO_CHAR 'V'
 #define E_STOP_INTERRUPT_MODE RISING
 
-#define joystick_deadzone 40
+#define joystick_deadzone 42
 bool soft_e_stop = false;
 char received_char;
 
@@ -33,24 +32,57 @@ char received_char;
 //True if joystick is  being moved.
 #define liveJoy(x) (x < 512-joystick_deadzone || x > 512+joystick_deadzone)
 // returns a the analog value of a live joystick to a range from -100 to +100, or to 0 if its dead.
-#define mapJoy(x) (liveJoy(x) ? (200*x-102300)/1023 : 0)
+#define mapJoy(x) (liveJoy(x) ? (x-512) : 0)
 
 #define s1 1500
 #define s2 500
 #define s3 250
 int step_speed = s1; //higher means slower
+int joyVals[5];
+const int joyPins[] = {
+  base_joy_x_pin,
+  shoulder_joy_x_pin,
+  0,
+  0,
+  0
+};
+const int limitPinsCW[] = {
+  base_lim_cw_pin,
+  shoulder_lim_cw_pin,
+  0,
+  0,
+  0
+};
+const int limitPinsCCW[] = {
+  base_lim_ccw_pin,
+  shoulder_lim_ccw_pin,
+  0,
+  0,
+  0
+};
 
-void speedShift();
+const float speedFactors[] = {
+  base_max_speed/512,
+  shoulder_max_speed/512,
+  0,
+  0,
+  0
+};
+AccelStepper mBase(AccelStepper::DRIVER, base_step_pin, base_dir_pin);
+AccelStepper mShoulder(AccelStepper::DRIVER, shoulder_step_pin, shoulder_dir_pin);
 
-mBase(AccelStepper::DRIVER, base_step_pin, base_dir_pin);
-mShoulder(AccelStepper::DRIVER, shoulder_step_pin, shoulder_dir_pin);
+AccelStepper *motors[5];
 
 MultiStepper allSteppers;
 
 void setup() {
+  motors[0] = &mBase;
+  motors[1] = &mShoulder;
 
-  mBase.setMaxSpeed(2000.0);
-  mShoulder.setMaxSpeed(2000.0);
+  mBase.setMaxSpeed(base_max_speed);
+  mBase.setAcceleration(0.0);
+  mShoulder.setMaxSpeed(shoulder_max_speed);
+  mShoulder.setAcceleration(0.0);
 
   allSteppers.addStepper(mBase);
   allSteppers.addStepper(mShoulder);
@@ -63,15 +95,16 @@ void setup() {
   Serial.begin(9600);
 
   attachInterrupt(E_STOP_INTERRUPT, emergency_stop, E_STOP_INTERRUPT_MODE);
+
 }
 
 void loop() {
+
  if (Serial.available() > 0) {
-    soft_e_stop = true;
     received_char = Serial.read();
     Serial.print(received_char);
-    if (received_char == '0'){
-      soft_e_stop = false;
+    if (received_char == '1'){
+      soft_e_stop = true;
     }
   }
 
@@ -85,45 +118,29 @@ void loop() {
 
 
 void manualJoyControl(){
-  //Get an array of desired  FROM JOYSTICk;
-  int joyVal = mapJoy(analogRead(base_joy_x_pin));
+  for(int i = 0; i < 2; i++)
+  {
 
-  //handle limit switches
-  //If the limit switch is not pressed and we are are going forward
-  if(digitalRead(base_lim_cw_pin)!=LOW && joyVal(base_joy_x_pin)>0)
-  {
-    //Move if necessary
-    mBase.setSpeed(step_speed);
-    mBase.runSpeed(step_speed);
-  }
-  else if(digitalRead(base_lim_ccw_pin)!=LOW && joyVal(base_joy_x_pin)>0)
-  {
-    mBase.setSpeed(-step_speed);
-    mBase.runSpeed(step_speed);
-  }
-  else
-  {
-    mBase.stop();
-  }
-  //Shoulder
-  int joyVal = mapJoy(analogRead(shoulder_joy_x_pin));
+    //Get  desired  FROM JOYSTICk;
+    joyVals[i] = mapJoy(analogRead(joyPins[i]));
 
-  //handle limit switches
-  //If the limit switch is not pressed and we are are going forward
-  if(digitalRead(shoulder_lim_cw_pin)!=LOW && joyVal(shoulder_joy_x_pin)>0)
-  {
-    //Move if necessary
-    mShoulder.setSpeed(step_speed);
-    mShoulder.runSpeed(step_speed);
-  }
-  else if(digitalRead(shoulder_lim_ccw_pin)!=LOW && joyVal(shoulder_joy_x_pin)>0)
-  {
-    mShoulder.setSpeed(-step_speed);
-    mShoulder.runSpeed(step_speed);
-  }
-  else
-  {
-    mShoulder.stop();
+    //handle limit switches
+    //If the limit switch is not pressed and we are are going forward
+    if(digitalRead(limitPinsCW[i])!=LOW && joyVals[i]>0)
+    {
+      //Move if necessary
+      motors[i]->setSpeed(speedFactors[i]*joyVals[i]);
+      motors[i]->runSpeed();
+    }
+    else if(digitalRead(limitPinsCCW[i])!=LOW && joyVals[i]<0)
+    {
+      motors[i]->setSpeed(speedFactors[i]*joyVals[i]);
+      motors[i]->runSpeed();
+    }
+    else
+    {
+      motors[i]->stop();
+    }
   }
 
 }
