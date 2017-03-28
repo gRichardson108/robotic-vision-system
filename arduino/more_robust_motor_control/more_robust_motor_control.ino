@@ -2,6 +2,7 @@
 #include <AccelStepper.h>
 
 //Shoulder
+#define shoulder_index 1
 #define shoulder_step_pin 3
 #define shoulder_dir_pin 2
 #define shoulder_lim_cw_pin 23
@@ -11,6 +12,7 @@
 
 
 //Base
+#define base_index 0
 #define base_step_pin 9
 #define base_dir_pin 8
 #define base_lim_cw_pin 31
@@ -23,10 +25,15 @@
 #define E_STOP_VETO_CHAR 'V'
 #define E_STOP_INTERRUPT_MODE RISING
 
-#define joystick_threshold 500
+#define joystick_deadzone 40
 bool soft_e_stop = false;
 char received_char;
 
+
+//True if joystick is  being moved.
+#define liveJoy(x) (x < 512-joystick_deadzone || x > 512+joystick_deadzone)
+// returns a the analog value of a live joystick to a range from -100 to +100, or to 0 if its dead.
+#define mapJoy(x) (liveJoy(x) ? (200*x-102300)/1023 : 0)
 
 #define s1 1500
 #define s2 500
@@ -35,11 +42,18 @@ int step_speed = s1; //higher means slower
 
 void speedShift();
 
-AccelStepper mBase(AccelStepper::DRIVER, base_step_pin, base_dir_pin);
+mBase(AccelStepper::DRIVER, base_step_pin, base_dir_pin);
+mShoulder(AccelStepper::DRIVER, shoulder_step_pin, shoulder_dir_pin);
+
+MultiStepper allSteppers;
 
 void setup() {
+
   mBase.setMaxSpeed(2000.0);
-  mBase.setAcceleration(300.0);
+  mShoulder.setMaxSpeed(2000.0);
+
+  allSteppers.addStepper(mBase);
+  allSteppers.addStepper(mShoulder);
 
   pinMode(base_lim_cw_pin, INPUT);
   pinMode(base_lim_ccw_pin, INPUT);
@@ -61,34 +75,58 @@ void loop() {
     }
   }
 
-  mBase.stop();
- // mBase.setCurrentPosition(0);
-
- //speedShift();
-
-
-  if (digitalRead(base_lim_cw_pin)==HIGH && !soft_e_stop && analogRead(base_joy_x_pin) > 540) {  //  If joystick is moved Left 712
-    //Go clockwise
-    mBase.setSpeed(step_speed);
-    mBase.runSpeed();
-  }
-
-  if (digitalRead(base_lim_ccw_pin)==HIGH && !soft_e_stop && analogRead(base_joy_x_pin) < 490) {  //  If joystick is moved Left 712
-     mBase.setSpeed(-step_speed);
-    mBase.runSpeed();
-  }
-
-
-}
-/*
-void manualJoyControl(int joystick, int stepper, int velocity, int limit)
-{
-  if( !soft_e_stop && !limit && joystick > joystick_threshold)
+  if(soft_e_stop)
   {
-    stepperMove(stepper, velocity);
+    emergency_stop();
   }
+
+  manualJoyControl();
 }
-*/
+
+
+void manualJoyControl(){
+  //Get an array of desired  FROM JOYSTICk;
+  int joyVal = mapJoy(analogRead(base_joy_x_pin));
+
+  //handle limit switches
+  //If the limit switch is not pressed and we are are going forward
+  if(digitalRead(base_lim_cw_pin)!=LOW && joyVal(base_joy_x_pin)>0)
+  {
+    //Move if necessary
+    mBase.setSpeed(step_speed);
+    mBase.runSpeed(step_speed);
+  }
+  else if(digitalRead(base_lim_ccw_pin)!=LOW && joyVal(base_joy_x_pin)>0)
+  {
+    mBase.setSpeed(-step_speed);
+    mBase.runSpeed(step_speed);
+  }
+  else
+  {
+    mBase.stop();
+  }
+  //Shoulder
+  int joyVal = mapJoy(analogRead(shoulder_joy_x_pin));
+
+  //handle limit switches
+  //If the limit switch is not pressed and we are are going forward
+  if(digitalRead(shoulder_lim_cw_pin)!=LOW && joyVal(shoulder_joy_x_pin)>0)
+  {
+    //Move if necessary
+    mShoulder.setSpeed(step_speed);
+    mShoulder.runSpeed(step_speed);
+  }
+  else if(digitalRead(shoulder_lim_ccw_pin)!=LOW && joyVal(shoulder_joy_x_pin)>0)
+  {
+    mShoulder.setSpeed(-step_speed);
+    mShoulder.runSpeed(step_speed);
+  }
+  else
+  {
+    mShoulder.stop();
+  }
+
+}
 
 void emergency_stop()
 {
