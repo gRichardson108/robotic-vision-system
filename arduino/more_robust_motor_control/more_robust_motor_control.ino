@@ -1,96 +1,51 @@
 #include <MultiStepper.h>
 #include <AccelStepper.h>
+#include "config.cpp"
 
-//Shoulder
-#define shoulder_index 1
-#define shoulder_step_pin 7
-#define shoulder_dir_pin 4
-#define shoulder_lim_cw_pin 23
-#define shoulder_lim_ccw_pin 22
-#define shoulder_joy_x_pin A0
-#define shoulder_joy_sw_pin 11
-#define shoulder_max_speed 3000.0
-//Base
-#define base_index 0
-#define base_step_pin 9
-#define base_dir_pin 8
-#define base_lim_cw_pin 31
-#define base_lim_ccw_pin 30
-#define base_joy_x_pin A3
-#define base_joy_sw_pin 12
-#define base_max_speed 2000.0
 
-#define E_STOP_INTERRUPT 0
-#define E_STOP_VETO_CHAR 'V'
-#define E_STOP_INTERRUPT_MODE RISING
-
-#define joystick_deadzone 42
+int joyVals[4];
 bool soft_e_stop = false;
 char received_char;
-
-
-//True if joystick is  being moved.
-#define liveJoy(x) (x < 512-joystick_deadzone || x > 512+joystick_deadzone)
-// returns a the analog value of a live joystick to a range from -100 to +100, or to 0 if its dead.
-#define mapJoy(x) (liveJoy(x) ? (x-512) : 0)
-
-#define s1 1500
-#define s2 500
-#define s3 250
-int step_speed = s1; //higher means slower
-int joyVals[5];
-const int joyPins[] = {
-  base_joy_x_pin,
-  shoulder_joy_x_pin,
-  0,
-  0,
-  0
-};
-const int limitPinsCW[] = {
-  base_lim_cw_pin,
-  shoulder_lim_cw_pin,
-  0,
-  0,
-  0
-};
-const int limitPinsCCW[] = {
-  base_lim_ccw_pin,
-  shoulder_lim_ccw_pin,
-  0,
-  0,
-  0
-};
-
-const float speedFactors[] = {
-  base_max_speed/512,
-  shoulder_max_speed/512,
-  0,
-  0,
-  0
-};
 AccelStepper mBase(AccelStepper::DRIVER, base_step_pin, base_dir_pin);
 AccelStepper mShoulder(AccelStepper::DRIVER, shoulder_step_pin, shoulder_dir_pin);
+AccelStepper mElbow(AccelStepper::DRIVER,elbow_step_pin,elbow_dir_pin);
+AccelStepper mWrist(AccelStepper::DRIVER,wrist_step_pin,wrist_dir_pin);
 
-AccelStepper *motors[5];
+AccelStepper *motors[4];
 
-MultiStepper allSteppers;
+//MultiStepper allSteppers;
 
 void setup() {
-  motors[0] = &mBase;
-  motors[1] = &mShoulder;
+  motors[base_index]     = &mBase;
+  motors[shoulder_index] = &mShoulder;
+  motors[elbow_index]    = &mElbow;
+  motors[wrist_index]    = &mWrist;
+  for(int i = 0; i<4; i++) {
+    motors[i]->setMaxSpeed(maxSpeeds[i]);
+    motors[i]->setAcceleration(speedFactors[i]);
+  }
+  //
+  // mBase.setMaxSpeed(base_max_speed);
+  // mBase.setAcceleration(0.0);
+  // mShoulder.setMaxSpeed(shoulder_max_speed);
+  // mShoulder.setAcceleration(0.0);
 
-  mBase.setMaxSpeed(base_max_speed);
-  mBase.setAcceleration(0.0);
-  mShoulder.setMaxSpeed(shoulder_max_speed);
-  mShoulder.setAcceleration(0.0);
-
-  allSteppers.addStepper(mBase);
-  allSteppers.addStepper(mShoulder);
+  //allSteppers.addStepper(mBase);
+  //allSteppers.addStepper(mShoulder);
 
   pinMode(base_lim_cw_pin, INPUT);
   pinMode(base_lim_ccw_pin, INPUT);
+  pinMode(shoulder_lim_cw_pin, INPUT);
+  pinMode(shoulder_lim_ccw_pin, INPUT);
+  pinMode(elbow_lim_cw_pin, INPUT);
+  pinMode(elbow_lim_ccw_pin, INPUT);
+  pinMode(wrist_lim_cw_pin, INPUT);
+  pinMode(wrist_lim_ccw_pin, INPUT);
 
   pinMode(base_joy_sw_pin, INPUT_PULLUP);
+  pinMode(shoulder_joy_sw_pin, INPUT_PULLUP);
+  pinMode(elbow_joy_sw_pin, INPUT_PULLUP);
+  pinMode(wrist_joy_sw_pin, INPUT_PULLUP);
 
   Serial.begin(9600);
 
@@ -100,7 +55,7 @@ void setup() {
 
 void loop() {
 
- if (Serial.available() > 0) {
+  if (Serial.available() > 0) {
     received_char = Serial.read();
     Serial.print(received_char);
     if (received_char == '1'){
@@ -118,7 +73,7 @@ void loop() {
 
 
 void manualJoyControl(){
-  for(int i = 0; i < 2; i++)
+  for(int i = 0; i < 4; i++)
   {
 
     //Get  desired  FROM JOYSTICk;
@@ -148,6 +103,9 @@ void manualJoyControl(){
 void emergency_stop()
 {
     //Stop motors NOW.
+    for(int i=0; i<4;i++) {
+      motors[i]->stop();
+    }
     //Then, wait for veto.
     do
     {
@@ -156,22 +114,4 @@ void emergency_stop()
         received_char = Serial.read();
       }
     }while(received_char!=E_STOP_VETO_CHAR);
-}
-
-void speedShift()
-{
-  if (!digitalRead(base_joy_sw_pin)) {  //  If Joystick switch is clicked
-    delay(500);  // delay for deboucing
-    switch (step_speed) {  // check current value of step_speed and change it
-      case s1:
-        step_speed = s2; // fast speed
-        break;
-      case s2:
-        step_speed = s3; // slow speed
-        break;
-      case s3:
-        step_speed = s1; // medium speed
-        break;
-    }
-  }
 }
