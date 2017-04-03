@@ -38,11 +38,11 @@
 #define wrist_joy_sw_pin           13
 #define wrist_max_speed            2000.0
 
-
-
-#define E_STOP_INTERRUPT          0
+//emergency stop pin must be one of the following: 2, 3, 18, 19, 20, 21
+#define E_STOP_PIN                 18
+#define E_STOP_ENABLE_CHAR        'E'
 #define E_STOP_VETO_CHAR          'V'
-#define E_STOP_INTERRUPT_MODE     RISING
+#define E_STOP_INTERRUPT_MODE     FALLING
 
 #define joystick_deadzone         42
 #define joystick_midpoint         512
@@ -70,7 +70,7 @@ const int limitPinsCCW[] = {
   elbow_lim_ccw_pin,
   wrist_lim_ccw_pin
 };
-
+/*
 const float maxSpeeds[] = {
   base_max_speed,
   shoulder_max_speed,
@@ -84,3 +84,4 @@ const float speedFactors[] = {
   elbow_max_speed/joystick_midpoint,
   wrist_max_speed/joystick_midpoint
 };
+*/

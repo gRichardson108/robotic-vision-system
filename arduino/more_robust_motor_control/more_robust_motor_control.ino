@@ -1,56 +1,44 @@
-#include <MultiStepper.h>
-#include <AccelStepper.h>
-#include "config.cpp"
-
+#include "RoviStepper.cpp"
+#include "config.cpp" //Defines pins and other constants.
 
 int joyVals[4];
 bool soft_e_stop = false;
 char received_char;
-AccelStepper mBase(AccelStepper::DRIVER, base_step_pin, base_dir_pin);
-AccelStepper mShoulder(AccelStepper::DRIVER, shoulder_step_pin, shoulder_dir_pin);
-AccelStepper mElbow(AccelStepper::DRIVER,elbow_step_pin,elbow_dir_pin);
-AccelStepper mWrist(AccelStepper::DRIVER,wrist_step_pin,wrist_dir_pin);
 
-AccelStepper *motors[4];
+unsigned long sharedTimer;
 
-//MultiStepper allSteppers;
-
+RoviStepper *motors[4];
 void setup() {
-  motors[base_index]     = &mBase;
-  motors[shoulder_index] = &mShoulder;
-  motors[elbow_index]    = &mElbow;
-  motors[wrist_index]    = &mWrist;
-  for(int i = 0; i<4; i++) {
-    motors[i]->setMaxSpeed(maxSpeeds[i]);
-    motors[i]->setAcceleration(speedFactors[i]);
-  }
-  //
-  // mBase.setMaxSpeed(base_max_speed);
-  // mBase.setAcceleration(0.0);
-  // mShoulder.setMaxSpeed(shoulder_max_speed);
-  // mShoulder.setAcceleration(0.0);
+  motors[base_index]     = new RoviStepper(base_step_pin,     base_dir_pin);
+  motors[shoulder_index] = new RoviStepper(shoulder_step_pin, shoulder_dir_pin);
+  motors[elbow_index]    = new RoviStepper(elbow_step_pin,    elbow_dir_pin);
+  motors[wrist_index]    = new RoviStepper(wrist_step_pin,    wrist_dir_pin);
 
-  //allSteppers.addStepper(mBase);
-  //allSteppers.addStepper(mShoulder);
-
-  pinMode(base_lim_cw_pin, INPUT);
+  pinMode(base_lim_cw_pin,  INPUT);
   pinMode(base_lim_ccw_pin, INPUT);
-  pinMode(shoulder_lim_cw_pin, INPUT);
+  pinMode(shoulder_lim_cw_pin,  INPUT);
   pinMode(shoulder_lim_ccw_pin, INPUT);
-  pinMode(elbow_lim_cw_pin, INPUT);
+  pinMode(elbow_lim_cw_pin,  INPUT);
   pinMode(elbow_lim_ccw_pin, INPUT);
-  pinMode(wrist_lim_cw_pin, INPUT);
+  pinMode(wrist_lim_cw_pin,  INPUT);
   pinMode(wrist_lim_ccw_pin, INPUT);
 
-  pinMode(base_joy_sw_pin, INPUT_PULLUP);
+  pinMode(base_joy_sw_pin,     INPUT_PULLUP);
   pinMode(shoulder_joy_sw_pin, INPUT_PULLUP);
   pinMode(elbow_joy_sw_pin, INPUT_PULLUP);
   pinMode(wrist_joy_sw_pin, INPUT_PULLUP);
 
   Serial.begin(9600);
+  
+/* Delete this line to test hardware emergency_stop button.
 
-  attachInterrupt(E_STOP_INTERRUPT, emergency_stop, E_STOP_INTERRUPT_MODE);
-
+  pinMode(E_STOP_PIN, INPUT_PULLUP);
+  attachInterrupt(
+    digitalPinToInterrupt(E_STOP_PIN), //converts the pin to an interrupt.
+    emergency_stop, //interrupt routine callback.
+    E_STOP_INTERRUPT_MODE
+  );
+/* */
 }
 
 void loop() {
@@ -58,7 +46,7 @@ void loop() {
   if (Serial.available() > 0) {
     received_char = Serial.read();
     Serial.print(received_char);
-    if (received_char == '1'){
+    if (received_char == E_STOP_ENABLE_CHAR){
       soft_e_stop = true;
     }
   }
@@ -68,44 +56,45 @@ void loop() {
     emergency_stop();
   }
 
+  sharedTimer = millis();
+
   manualJoyControl();
 }
 
 
 void manualJoyControl(){
+  //For loop through all the motors, and move them if need be
   for(int i = 0; i < 4; i++)
   {
-
+    motors[i]->sync(sharedTimer);
     //Get  desired  FROM JOYSTICk;
     joyVals[i] = mapJoy(analogRead(joyPins[i]));
 
-    //handle limit switches
-    //If the limit switch is not pressed and we are are going forward
+    //If the limit switch is not pressed and the motor is moving  clockwise
     if(digitalRead(limitPinsCW[i])!=LOW && joyVals[i]>0)
     {
-      //Move if necessary
-      motors[i]->setSpeed(speedFactors[i]*joyVals[i]);
-      motors[i]->runSpeed();
+      motors[i]->setVelocity(60);
+      motors[i]->step();
     }
+    //if the limit switch is not pressed and the motor is moving counter clockwise
     else if(digitalRead(limitPinsCCW[i])!=LOW && joyVals[i]<0)
     {
-      motors[i]->setSpeed(speedFactors[i]*joyVals[i]);
-      motors[i]->runSpeed();
+      motors[i]->setVelocity(-60);
+      motors[i]->step();
     }
-    else
-    {
-      motors[i]->stop();
-    }
+
   }
 
 }
 
 void emergency_stop()
 {
-    //Stop motors NOW.
-    for(int i=0; i<4;i++) {
-      motors[i]->stop();
-    }
+    //force Stop motors NOW.
+    digitalWrite(base_step_pin, LOW);
+    digitalWrite(shoulder_step_pin, LOW);
+    digitalWrite(elbow_step_pin, LOW);
+    digitalWrite(wrist_step_pin, LOW);
+
     //Then, wait for veto.
     do
     {
@@ -114,4 +103,5 @@ void emergency_stop()
         received_char = Serial.read();
       }
     }while(received_char!=E_STOP_VETO_CHAR);
+    soft_e_stop = false;
 }
