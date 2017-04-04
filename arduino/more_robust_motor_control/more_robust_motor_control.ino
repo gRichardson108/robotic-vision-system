@@ -29,7 +29,6 @@ void setup() {
   pinMode(wrist_joy_sw_pin, INPUT_PULLUP);
 
   Serial.begin(9600);
-  
 /* Delete this line to test hardware emergency_stop button.
 
   pinMode(E_STOP_PIN, INPUT_PULLUP);
@@ -59,34 +58,33 @@ void loop() {
   sharedTimer = millis();
 
   manualJoyControl();
+
 }
 
 
 void manualJoyControl(){
   //For loop through all the motors, and move them if need be
-  for(int i = 0; i < 4; i++)
+  for(int i = base_index; i <= wrist_index; i++)
   {
     motors[i]->sync(sharedTimer);
     //Get  desired  FROM JOYSTICk;
     joyVals[i] = mapJoy(analogRead(joyPins[i]));
-
-    //If the limit switch is not pressed and the motor is moving  clockwise
-    if(digitalRead(limitPinsCW[i])!=LOW && joyVals[i]>0)
+    //If the limi switch is not pressed and the motor is moving  clockwise
+    if(/*digitalRead(limitPinsCW[i])!=LOW &&*/ joyVals[i]>0)
     {
-      motors[i]->setVelocity(60);
+      motors[i]->setVelocity(100);
       motors[i]->step();
     }
     //if the limit switch is not pressed and the motor is moving counter clockwise
-    else if(digitalRead(limitPinsCCW[i])!=LOW && joyVals[i]<0)
+    else if(/*digitalRead(limitPinsCCW[i])!=LOW &&*/ joyVals[i]<0)
     {
-      motors[i]->setVelocity(-60);
+      motors[i]->setVelocity(-100);
       motors[i]->step();
     }
 
   }
 
 }
-
 void emergency_stop()
 {
     //force Stop motors NOW.

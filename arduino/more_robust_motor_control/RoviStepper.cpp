@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <AccelStepper.h>
 #define CLOCKWISE true
 
 class RoviStepper {
