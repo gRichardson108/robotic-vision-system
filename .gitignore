@@ -1,6 +1,9 @@
 # To manually ignore a file, rename it so that is has a '.ign' before the file extension.
 *.ign.*
 
+# output test files
+output.mp4
+
 # Created by https://www.gitignore.io/api/c++,python,visualstudio,codeblocks
 
 ### C++ ###
@@ -415,4 +418,3 @@ paket-files/
 # tools/
 
 ### VisualStudio Patch ###
-
