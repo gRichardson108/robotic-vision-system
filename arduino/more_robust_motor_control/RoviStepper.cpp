@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#define CLOCKWISE true
+
 
 class RoviStepper {
 private:
@@ -11,7 +11,7 @@ private:
   int stepPin;
 public:
   static const int ANTI_OVERFLOW_OFFSET = 1000;
-
+  static const int CLOCKWISE = true;
   RoviStepper (int step_p, int dir_p)
   {
     stepCount = 0;
