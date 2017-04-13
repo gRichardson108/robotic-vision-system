@@ -1,9 +1,9 @@
 import numpy as np
 import cv2
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 kernel = np.ones((2,2), np.uint8)
-fgbg = cv2.createBackgroundSubtractorKNN(detectShadows=True)
+fgbg = cv2.createBackgroundSubtractorMOG2(100,200,detectShadows=True)
 fgbg.setHistory(30)
 blobDetector = cv2.SimpleBlobDetector_create()
 
