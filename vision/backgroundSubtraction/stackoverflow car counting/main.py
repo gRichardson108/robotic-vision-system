@@ -11,6 +11,7 @@ from vehicle_counter import VehicleCounter
 
 # ============================================================================
 
+SAVE_IMAGES = False
 IMAGE_DIR = "images"
 IMAGE_FILENAME_FORMAT = IMAGE_DIR + "/frame_%04d.png"
 
@@ -58,11 +59,14 @@ def init_logging():
 # ============================================================================
 
 def save_frame(file_name_format, frame_number, frame, label_format):
-    file_name = file_name_format % frame_number
-    label = label_format % frame_number
+    if (SAVE_IMAGES):
+        file_name = file_name_format % frame_number
+        label = label_format % frame_number
 
-    log.debug("Saving %s as '%s'", label, file_name)
-    cv2.imwrite(file_name, frame)
+        log.debug("Saving %s as '%s'", label, file_name)
+        cv2.imwrite(file_name, frame)
+    else:
+        log.debug("Not saving images")
 
 # ============================================================================
 
@@ -131,7 +135,9 @@ def process_frame(frame_number, frame, bg_subtractor, car_counter):
     processed = frame.copy()
 
     # Draw dividing line -- we count cars as they cross this line.
-    cv2.line(processed, (0, car_counter.divider), (frame.shape[1], car_counter.divider), DIVIDER_COLOUR, 1)
+    #cv2.line(processed, (0, car_counter.divider), (frame.shape[1], car_counter.divider), DIVIDER_COLOUR, 1)
+    cv2.rectangle(processed, car_counter.divider[0], car_counter.divider[1],DIVIDER_COLOUR, 1)
+
 
     # Remove the background
     fg_mask = bg_subtractor.apply(frame, None, 0.01)
@@ -170,7 +176,8 @@ def main():
 
     log.debug("Pre-training the background subtractor...")
     default_bg = cv2.imread(IMAGE_FILENAME_FORMAT % 119)
-    bg_subtractor.apply(default_bg, None, 1.0)
+    if (default_bg):
+        bg_subtractor.apply(default_bg, None, 1.0)
 
     car_counter = None # Will be created after first frame is captured
 
@@ -197,7 +204,7 @@ def main():
         if car_counter is None:
             # We do this here, so that we can initialize with actual frame size
             log.debug("Creating vehicle counter...")
-            car_counter = VehicleCounter(frame.shape[:2], frame.shape[0] / 2)
+            car_counter = VehicleCounter(frame.shape[:2],((frame.shape[1] * 1/ 10, frame.shape[0]*1/10), (frame.shape[1] * 9/ 10, frame.shape[0]*9/10)))
 
         # Archive raw frames from video to disk for later inspection/testing
         if CAPTURE_FROM_VIDEO:
