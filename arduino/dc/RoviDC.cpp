@@ -46,5 +46,4 @@ public:
     analogWrite(pwmPin, velocity);
   }
 
-
 };

@@ -9,19 +9,11 @@ unsigned long sharedTimer;
 
 RoviStepper *motors[4];
 void setup() {
-  motors[base_index]     = new RoviStepper(base_step_pin,     base_dir_pin);
-  motors[shoulder_index] = new RoviStepper(shoulder_step_pin, shoulder_dir_pin);
-  motors[elbow_index]    = new RoviStepper(elbow_step_pin,    elbow_dir_pin);
-  motors[wrist_index]    = new RoviStepper(wrist_step_pin,    wrist_dir_pin);
-
-  pinMode(base_lim_cw_pin,  INPUT);
-  pinMode(base_lim_ccw_pin, INPUT);
-  pinMode(shoulder_lim_cw_pin,  INPUT);
-  pinMode(shoulder_lim_ccw_pin, INPUT);
-  pinMode(elbow_lim_cw_pin,  INPUT);
-  pinMode(elbow_lim_ccw_pin, INPUT);
-  pinMode(wrist_lim_cw_pin,  INPUT);
-  pinMode(wrist_lim_ccw_pin, INPUT);
+                          //Step, direction, limitCW, limitCCW
+  motors[base_index]     = new RoviStepper(3,4, 23,24);
+  motors[shoulder_index] = new RoviStepper(5,6, 25,26);
+  motors[elbow_index]    = new RoviStepper(7,8, 27,28);
+  motors[wrist_index]    = new RoviStepper(9,10,29,30);
 
   pinMode(base_joy_sw_pin,     INPUT_PULLUP);
   pinMode(shoulder_joy_sw_pin, INPUT_PULLUP);
@@ -57,42 +49,46 @@ void loop() {
 
   sharedTimer = millis();
 
-  manualJoyControl();
+  manualJoyControlNoLimitSwitch();
 
+  // manualJoystickControl();
+}
+void manualJoystickControl(){
+  //For loop through all the motors, and move them if need be
+  for(short i = base_index; i <= wrist_index; i++)
+  {
+    motors[i]->setVelocity( joystick(i) );
+    motors[i]->sync(sharedTimer);
+    motors[i]->run();
+  }
 }
 
+int joystick(short whichJoystick) {
+  return mapJoy(
+    analogRead( joyPins[whichJoystick] )
+  );
+}
 
-void manualJoyControl(){
+void manualJoyControlNoLimitSwitch(){
   //For loop through all the motors, and move them if need be
   for(int i = base_index; i <= wrist_index; i++)
   {
     motors[i]->sync(sharedTimer);
-    //Get  desired  FROM JOYSTICk;
-    joyVals[i] = mapJoy(analogRead(joyPins[i]));
-    //If the limi switch is not pressed and the motor is moving  clockwise
-    if(/*digitalRead(limitPinsCW[i])!=LOW &&*/ joyVals[i]>0)
-    {
-      motors[i]->setVelocity(100);
-      motors[i]->step();
-    }
-    //if the limit switch is not pressed and the motor is moving counter clockwise
-    else if(/*digitalRead(limitPinsCCW[i])!=LOW &&*/ joyVals[i]<0)
-    {
-      motors[i]->setVelocity(-100);
-      motors[i]->step();
-    }
 
+    joyVals[i] = mapJoy(analogRead(joyPins[i]));
+
+    motors[i]->setVelocity(joyVals[i]);
+    motors[i]->step();
   }
 
 }
 void emergency_stop()
 {
+    noInterrupts();
     //force Stop motors NOW.
-    digitalWrite(base_step_pin, LOW);
-    digitalWrite(shoulder_step_pin, LOW);
-    digitalWrite(elbow_step_pin, LOW);
-    digitalWrite(wrist_step_pin, LOW);
-
+    for(int i = base_index; i <= wrist_index; i++) {
+      motors[i]->stop();
+    }
     //Then, wait for veto.
     do
     {
@@ -102,4 +98,6 @@ void emergency_stop()
       }
     }while(received_char!=E_STOP_VETO_CHAR);
     soft_e_stop = false;
+
+    interrupts();
 }

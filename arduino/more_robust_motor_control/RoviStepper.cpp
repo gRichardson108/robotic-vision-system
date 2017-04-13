@@ -3,17 +3,23 @@
 
 class RoviStepper {
 private:
+  bool currentDirection;
   signed long netSteps;//might experience overflow.
+
   unsigned long currentMillis;
   unsigned long previousStepMillis;
   unsigned long millisBetweenSteps;
-  int directionPin;
-  int stepPin;
-  bool currentDirection;
+
+  unsigned short directionPin;
+  unsigned short stepPin;
+  unsigned short limitPinCW;
+  unsigned short limitPinCCW;
 public:
   static const int ANTI_OVERFLOW_OFFSET = 1000;
   static const bool CLOCKWISE = true;
-  RoviStepper (int step_p, int dir_p)
+
+  RoviStepper (const unsigned short step_p, const unsigned short dir_p,
+    const unsigned short lim_p_cw, const unsigned short lim_p_ccw)
   {
     netSteps = 0;
     currentMillis = 0;
@@ -22,9 +28,14 @@ public:
 
     stepPin = step_p;
     directionPin = dir_p;
+    limitPinCW = lim_p_cw;
+    limitPinCCW = lim_p_ccw;
 
-    pinMode(dir_p, OUTPUT);
-    pinMode(step_p, OUTPUT);
+    pinMode(stepPin, OUTPUT);
+    pinMode(directionPin, OUTPUT);
+    pinMode(limitPinCW, INPUT_PULLUP);
+    pinMode(limitPinCCW, INPUT_PULLUP);
+
     digitalWrite(directionPin,currentDirection);
   }
   void sync(unsigned long currTime)
@@ -83,5 +94,34 @@ public:
     return false;
   }
 
+  void run() {
+    if (currentDirection == CLOCKWISE && digitalRead(limitPinCW)){
+      return;
+    }
+    else if(currentDirection != CLOCKWISE && digitalRead(limitPinCCW)){
+      return;
+    }
+    else step();
+  }
+
+  //returns true iff we are at the step goal.
+  bool runTo(long stepGoal) {
+    if (netSteps < stepGoal) {
+      currentDirection = CLOCKWISE;
+    }
+    else if(netSteps > stepGoal)
+    {
+      currentDirection = !CLOCKWISE;
+    }
+    else return true;
+
+    digitalWrite(directionPin, currentDirection);
+    run();
+    return false;
+  }
+
+  void stop() {
+    digitalWrite(stepPin, false);
+  }
 
 };
