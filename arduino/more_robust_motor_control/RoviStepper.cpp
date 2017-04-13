@@ -3,52 +3,59 @@
 
 class RoviStepper {
 private:
-  long stepCount;//might experience overflow.
+  signed long netSteps;//might experience overflow.
   unsigned long currentMillis;
   unsigned long previousStepMillis;
   unsigned long millisBetweenSteps;
   int directionPin;
   int stepPin;
+  bool currentDirection;
 public:
   static const int ANTI_OVERFLOW_OFFSET = 1000;
-  static const int CLOCKWISE = true;
+  static const bool CLOCKWISE = true;
   RoviStepper (int step_p, int dir_p)
   {
-    stepCount = 0;
-    stepPin = step_p;
-    directionPin = dir_p;
-    pinMode(dir_p, OUTPUT);
-    pinMode(step_p, OUTPUT);
+    netSteps = 0;
     currentMillis = 0;
     millisBetweenSteps = 1000; //default 1 step per second.
+    currentDirection = CLOCKWISE;
+
+    stepPin = step_p;
+    directionPin = dir_p;
+
+    pinMode(dir_p, OUTPUT);
+    pinMode(step_p, OUTPUT);
+    digitalWrite(directionPin,currentDirection);
   }
   void sync(unsigned long currTime)
   {
     currentMillis = currTime;
   }
 
-  void resetStepCount() {
-    stepCount = 0;
+  void resetNetSteps() {
+    netSteps = 0;
   }
 
-  long getStepCount() {
-    return stepCount;
+  long getNetSteps() {
+    return netSteps;
   }
   //Mesured in steps per second. where positive is clockwise.
   //Maximum speed is 1000 steps per second.
-  void setVelocity(long stepsPerSecond)
+  void setVelocity(int stepsPerSecond)
   {
     if (stepsPerSecond > 0)
     {
-      digitalWrite(directionPin,CLOCKWISE);
+      currentDirection = CLOCKWISE;
       millisBetweenSteps = 1000 / stepsPerSecond;
     }
     else if(stepsPerSecond < 0)
     {
-      digitalWrite(directionPin, !CLOCKWISE);
+      currentDirection = !CLOCKWISE;
       millisBetweenSteps = (-1000) / stepsPerSecond;
     }
+    else return;
 
+    digitalWrite(directionPin, currentDirection);
   }
 
   void step()
@@ -57,24 +64,23 @@ public:
       previousStepMillis += millisBetweenSteps;
       digitalWrite(stepPin, HIGH);
       digitalWrite(stepPin, LOW);
+      netSteps += currentDirection ? 1 : -1;
     }
   }
   //returns true iff we are at the step goal.
   bool stepTo(long stepGoal) {
-    if (stepCount < stepGoal) {
-      digitalWrite(directionPin, CLOCKWISE);
-      step();
-      return false;
+    if (netSteps < stepGoal) {
+      currentDirection = CLOCKWISE;
     }
-    else if(stepCount > stepGoal)
+    else if(netSteps > stepGoal)
     {
-      digitalWrite(directionPin, !CLOCKWISE);
-      step();
-      return false;
+      currentDirection = !CLOCKWISE;
     }
-    else {
-      return true;
-    }
+    else return true;
+
+    digitalWrite(directionPin, currentDirection);
+    step();
+    return false;
   }
 
 
