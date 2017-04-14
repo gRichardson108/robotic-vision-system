@@ -132,11 +132,28 @@ class VehicleCounter(object):
             return False
 
     def check_rect_overlap(self, a, b):
-        if a[1][0] < b[0][0] or b[1][0] > a[0][0] or a[1][1] < b[0][1] or b[1][1] < a[0][1]:
-            return True
-        else:
+        l1 = a[0]
+        l2 = b[0]
+        r1 = a[1]
+        r2 = b[1]
+
+        #if one rectangle is on left side of another
+        if l1[0] > r2[0] or l2[0] > r1[0]:
             return False
 
+        #if one rectangle is above another
+        if l1[1] > r2[1] or l2[1] > r1[1]:
+            return False
+
+        #if one rectangle is entirely within another
+        if l1[0] > l2[0] and l1[1] > l2[1] and r1[0] < r2[0] and r1[1] < r2[1]:
+            return False
+        #same as above, but with rectangles swapped
+        if l2[0] > l1[0] and l2[1] > l1[1] and r2[0] < r1[0] and r2[1] < r1[1]:
+            return False
+
+        #otherwise, they overlap
+        return True
 
 
 
@@ -186,7 +203,7 @@ class VehicleCounter(object):
                 vehicle.counted = True
                 if ser:
                     ser.write('E')#trigger error message
-                self.log.debug("Counted vehicle #%d (total count=%d)."
+                self.log.info("Counted vehicle #%d (total count=%d)."
                         , vehicle.id, self.vehicle_count)
 
                 # Optionally draw the vehicles on an image

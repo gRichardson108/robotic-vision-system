@@ -1,8 +1,11 @@
 # To manually ignore a file, rename it so that is has a '.ign' before the file extension.
 *.ign.*
-
+images/*
 # output test files
 output.mp4
+run.sh
+errors.txt
+*.log
 
 # Created by https://www.gitignore.io/api/c++,python,visualstudio,codeblocks
 
@@ -46,6 +49,7 @@ output.mp4
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # C extensions
 

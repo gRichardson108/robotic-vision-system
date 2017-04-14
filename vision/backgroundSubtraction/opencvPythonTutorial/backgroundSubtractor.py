@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 history = 10
-thresh = 800
+thresh = 8000
 
 cap = cv2.VideoCapture(1)
 kernel = np.ones((2,2), np.uint8)

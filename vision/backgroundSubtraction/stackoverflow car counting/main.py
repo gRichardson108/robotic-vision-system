@@ -172,7 +172,8 @@ def main():
     log = logging.getLogger("main")
 
     log.debug("Creating background subtractor...")
-    bg_subtractor = cv2.createBackgroundSubtractorMOG2()
+    bg_subtractor = cv2.createBackgroundSubtractorKNN(detectShadows=True)#cv2.createBackgroundSubtractorMOG2()
+    bg_subtractor.setShadowValue(0)
 
     log.debug("Pre-training the background subtractor...")
     default_bg = cv2.imread(IMAGE_FILENAME_FORMAT % 119)
