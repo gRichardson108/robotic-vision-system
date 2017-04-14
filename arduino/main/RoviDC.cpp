@@ -2,10 +2,6 @@
 
 class RoviDC {
 private:
-  long pulseCount;//might experience overflow.
-  unsigned long currentMillis;
-  unsigned long previousStepMillis;
-  unsigned long millisBetweenSteps;
   int pwmPin;
   int dirPinA;
   int dirPinB;
@@ -36,7 +32,6 @@ public:
       if(velocity>255) {
         velocity = 255;
       }
-      // analogWrite(pwmPin, (byte)velocity);
       setDirection(CLOCKWISE);
     }
     else if(velocity < 0)
@@ -51,5 +46,10 @@ public:
     analogWrite(pwmPin, velocity);
   }
 
+  void stop() {
+    digitalWrite(dirPinA, false);
+    digitalWrite(dirPinB, false);
+    digitalWrite(pwmPin,false);
+  }
 
 };
