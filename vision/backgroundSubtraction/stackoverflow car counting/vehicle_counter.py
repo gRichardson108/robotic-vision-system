@@ -9,17 +9,25 @@ import numpy as np
 
 CAR_COLOURS = [ (0,0,255), (0,106,255), (0,216,255), (0,255,182), (0,255,76)
         , (144,255,0), (255,255,0), (255,148,0), (255,0,178), (220,0,255) ]
+SERIAL_DEVICE = '/dev/ttyACM0'
 
-ser = serial.Serial('/dev/ttyACM0')
+ser = None
+try:
+    ser = serial.Serial(SERIAL_DEVICE, 9800)
+except:
+    ser = None
+    print("Couldn't open serial port " + SERIAL_DEVICE)
 
 # ============================================================================
 
 class Vehicle(object):
-    def __init__(self, id, position):
+    def __init__(self, id, position, contour):
         self.id = id
         self.positions = [position]
         self.frames_since_seen = 0
         self.counted = False
+        self.update_rect(contour)
+        self.colour = CAR_COLOURS[self.id % len(CAR_COLOURS)]
 
     @property
     def last_position(self):
@@ -37,11 +45,16 @@ class Vehicle(object):
         self.frames_since_seen = 0
 
     def draw(self, output_image):
-        car_colour = CAR_COLOURS[self.id % len(CAR_COLOURS)]
         for point in self.positions:
-            cv2.circle(output_image, point, 2, car_colour, -1)
+            cv2.circle(output_image, point, 2, self.colour, -1)
             cv2.polylines(output_image, [np.int32(self.positions)]
-                    , False, car_colour, 1)
+                    , False, self.colour, 1)
+        cv2.rectangle(output_image, self.rect[0], self.rect[1], self.colour, 1)
+        cv2.circle(output_image, self.last_position, 2, self.colour, -1)
+
+    def update_rect(self, contour):
+        self.rect = ((contour[0],contour[1]),(contour[0] + contour[2], contour[1] + contour[3]))
+
 
 
             # ============================================================================
@@ -118,6 +131,15 @@ class VehicleCounter(object):
         else:
             return False
 
+    def check_rect_overlap(self, a, b):
+        if a[1][0] < b[0][0] or b[1][0] > a[0][0] or a[1][1] < b[0][1] or b[1][1] < a[0][1]:
+            return True
+        else:
+            return False
+
+
+
+
     def update_vehicle(self, vehicle, matches):
     # Find if any of the matches fits this vehicle
         for i, match in enumerate(matches):
@@ -126,6 +148,7 @@ class VehicleCounter(object):
             vector = self.get_vector(vehicle.last_position, centroid)
             if self.is_valid_vector(vector):
                 vehicle.add_position(centroid)
+                vehicle.update_rect(contour)
                 self.log.debug("Added match (%d, %d) to vehicle #%d. vector=(%0.2f,%0.2f)"
                         , centroid[0], centroid[1], vehicle.id, vector[0], vector[1])
                 return i
@@ -150,7 +173,7 @@ class VehicleCounter(object):
         # Add new vehicles based on the remaining matches
         for match in matches:
             contour, centroid = match
-            new_vehicle = Vehicle(self.next_vehicle_id, centroid)
+            new_vehicle = Vehicle(self.next_vehicle_id, centroid, contour)
             self.next_vehicle_id += 1
             self.vehicles.append(new_vehicle)
             self.log.debug("Created new vehicle #%d from match (%d, %d)."
@@ -158,10 +181,11 @@ class VehicleCounter(object):
 
             # Count any uncounted vehicles that are past the divider
         for vehicle in self.vehicles:
-            if not vehicle.counted and (self.crossed_boundary(vehicle.second_last_position, vehicle.last_position)):
+            if not vehicle.counted and (self.check_rect_overlap(vehicle.rect, self.divider)):
                 self.vehicle_count += 1
                 vehicle.counted = True
-                ser.write('E')#trigger error message
+                if ser:
+                    ser.write('E')#trigger error message
                 self.log.debug("Counted vehicle #%d (total count=%d)."
                         , vehicle.id, self.vehicle_count)
 
