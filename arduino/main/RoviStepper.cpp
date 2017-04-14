@@ -3,7 +3,7 @@
 
 class RoviStepper {
 private:
-  bool currentDirection;
+  int currentVelocity;
   signed long netSteps;//might experience overflow.
 
   unsigned long currentMillis;
@@ -24,7 +24,7 @@ public:
     netSteps = 0;
     currentMillis = 0;
     millisBetweenSteps = 1000; //default 1 step per second.
-    currentDirection = CLOCKWISE;
+    currentVelocity = 0;
 
     stepPin = step_p;
     directionPin = dir_p;
@@ -36,7 +36,6 @@ public:
     pinMode(limitPinCW, INPUT);
     pinMode(limitPinCCW, INPUT);
 
-    digitalWrite(directionPin,currentDirection);
   }
   void sync(unsigned long currTime)
   {
@@ -55,66 +54,63 @@ public:
   {
    if (stepsPerSecond > 0)
    {
-     currentDirection = CLOCKWISE;
      digitalWrite(directionPin,CLOCKWISE);
      millisBetweenSteps = 1000 / stepsPerSecond;
    }
    else if(stepsPerSecond < 0)
    {
-     currentDirection = !CLOCKWISE;
      digitalWrite(directionPin, !CLOCKWISE);
      millisBetweenSteps = (-1000) / stepsPerSecond;
    }
+
+   currentVelocity = stepsPerSecond;
 
  }
 
   void step()
   {
-    if (currentMillis - previousStepMillis >= millisBetweenSteps) {
+    if (currentVelocity != 0 && currentMillis - previousStepMillis >= millisBetweenSteps) {
       previousStepMillis += millisBetweenSteps;
       digitalWrite(stepPin, HIGH);
       digitalWrite(stepPin, LOW);
-      netSteps += currentDirection ? 1 : -1;
+      netSteps += currentVelocity > 0 ? 1 : -1;
     }
   }
   //returns true iff we are at the step goal.
   bool stepTo(long stepGoal) {
-    if (netSteps < stepGoal) {
-      currentDirection = CLOCKWISE;
-    }
-    else if(netSteps > stepGoal)
+    if ( (netSteps < stepGoal && currentVelocity < 0) ||
+         (netSteps > stepGoal && currentVelocity > 0) )
     {
-      currentDirection = !CLOCKWISE;
+      currentVelocity *= -1;
     }
-    else return true;
-
-    digitalWrite(directionPin, currentDirection);
+    else{
+      currentVelocity = 0;
+      return true;
+    }
+    setVelocity(currentVelocity);
     step();
     return false;
   }
 
   void run() {
-    if (currentDirection == CLOCKWISE && digitalRead(limitPinCW)==LOW){
-      return;
+    if ( (digitalRead(limitPinCW) != LOW && currentVelocity > 0) ||
+         (digitalRead(limitPinCCW) != LOW && currentVelocity < 0) )
+    {
+      step();
     }
-    else if(currentDirection != CLOCKWISE && digitalRead(limitPinCCW)==LOW){
-      return;
-    }
-    else step();
   }
 
   //returns true iff we are at the step goal.
   bool runTo(long stepGoal) {
-    if (netSteps < stepGoal) {
-      currentDirection = CLOCKWISE;
-    }
-    else if(netSteps > stepGoal)
+    if ( (netSteps < stepGoal && currentVelocity < 0) ||
+         (netSteps > stepGoal && currentVelocity > 0) )
     {
-      currentDirection = !CLOCKWISE;
     }
-    else return true;
-
-    digitalWrite(directionPin, currentDirection);
+    else{
+      currentVelocity = 0;
+      return true;
+    }
+    setVelocity(currentVelocity);
     run();
     return false;
   }

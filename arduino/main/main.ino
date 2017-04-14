@@ -10,7 +10,7 @@
 #define E_STOP_PIN                18
 #define E_STOP_ENABLE_CHAR        'E'
 #define E_STOP_VETO_CHAR          'V'
-#define E_STOP_INTERRUPT_MODE     FALLING
+#define E_STOP_INTERRUPT_MODE     LOW
 
 
 bool soft_e_stop = false;
@@ -38,12 +38,12 @@ void setup() {
   joyPins[HAND]     = A4;
 
   for(int i = BASE; i <= WRIST; i++) {
-    pinMode(joyPins[i], INPUT_PULLUP);
+    pinMode(joyPins[i], INPUT);
   }
 
   Serial.begin(9600);
-/* Delete this line to test hardware emergency_stop button.
 
+  // Prepend this lind with a '/*' (no quotes) to use hardware emergency_stop button.
   pinMode(E_STOP_PIN, INPUT_PULLUP);
   attachInterrupt(
     digitalPinToInterrupt(E_STOP_PIN), //converts the pin to an interrupt.
@@ -55,31 +55,34 @@ void setup() {
 
 void loop() {
 
-  // if (Serial.available() > 0) {
-  //   received_char = Serial.read();
-  //   Serial.print(received_char);
-  //   if (received_char == E_STOP_ENABLE_CHAR){
-  //     soft_e_stop = true;
-  //   }
-  // }
-  //
-  // if(soft_e_stop)
-  // {
-  //   emergency_stop();
-  // }
+   if (Serial.available() > 0) {
+     received_char = Serial.read();
+     Serial.print(received_char);
+     if (received_char == E_STOP_ENABLE_CHAR){
+       soft_e_stop = true;
+     }
+   }
+
+   if(soft_e_stop)
+   {
+     emergency_stop();
+   }
 
   sharedTimer = millis();
-  arm[BASE]->sync(sharedTimer);
-  arm[BASE]->setVelocity(100);
-  //manualJoyControlNoLimitSwitch();
-  arm[BASE]->step();
-  // manualJoystickControl();
+//    manualJoyControlNoLimitSwitch();
+//  arm[BASE]->sync(sharedTimer);
+//  arm[BASE]->setVelocity(100);
+
+//  arm[BASE]->step();
+   manualJoystickControl();
 }
 void manualJoystickControl(){
   //For loop through all the arm, and move them if need be
   for(short i = BASE; i <= WRIST; i++)
   {
-    arm[i]->setVelocity( joystick(i) );
+    int vel =  joystick(i);
+    if(millis() % 1000 == 0) Serial.println(vel);
+    arm[i]->setVelocity( vel );
     arm[i]->sync(sharedTimer);
     arm[i]->run();
   }
@@ -87,14 +90,20 @@ void manualJoystickControl(){
 
 }
 
-int joystick(short whichJoystick) {
+int joystick(int whichJoystick) {
+  int x = analogRead(joyPins[whichJoystick]);
+  if(x < 350) {
+    return -500;
+  }else if (x > 650) return 500;
+  else return 0;
+
   static const int joystick_deadzone    =   42;
   static const int joystick_midpoint     =    512;
   //True if joystick is  being moved.
-  int x = analogRead(joyPins[whichJoystick]);
-  if(x < joystick_midpoint-joystick_deadzone || x > joystick_midpoint+joystick_deadzone)
+  int y = analogRead(joyPins[whichJoystick])-joystick_midpoint;
+  if(x < -joystick_deadzone || x > joystick_deadzone)
   {
-    return x-joystick_midpoint;
+    return x;
   }
   else {
     return 0;
@@ -115,7 +124,7 @@ void manualJoyControlNoLimitSwitch(){
 }
 void emergency_stop()
 {
-    noInterrupts();
+    //noInterrupts();
     //stop end effector
     hand->stop();
     //force Stop arm NOW.
@@ -132,7 +141,7 @@ void emergency_stop()
     }while(received_char!=E_STOP_VETO_CHAR);
     soft_e_stop = false;
 
-    interrupts();
+//    interrupts();
 }
 
 void debug() {
