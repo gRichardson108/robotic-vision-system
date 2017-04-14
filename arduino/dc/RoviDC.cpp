@@ -42,12 +42,8 @@ public:
       velocity *= -1;
       setDirection(!CLOCKWISE);
     }
-    analogWrite(pwmPin, velocity);
-  }
 
-  void go(int v) {
-    setDirection(v > 0);
-    digitalWrite(pwmPin, v != 0);
+    analogWrite(pwmPin, velocity);
   }
 
   void stop() {

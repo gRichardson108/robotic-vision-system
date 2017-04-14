@@ -38,7 +38,7 @@ void setup() {
   joyPins[HAND]     = A4;
 
   for(int i = BASE; i <= WRIST; i++) {
-    pinMode(joyPins[i], INPUT);
+    pinMode(joyPins[i], INPUT_PULLUP);
   }
 
   Serial.begin(9600);
@@ -69,41 +69,43 @@ void loop() {
    }
 
   sharedTimer = millis();
-//    manualJoyControlNoLimitSwitch();
-//  arm[BASE]->sync(sharedTimer);
-//  arm[BASE]->setVelocity(100);
 
-//  arm[BASE]->step();
-   manualJoystickControl();
+  // Serial.print("Hand");
+  // Serial.println(joystick(HAND));
+  // Serial.print("Base");
+  // Serial.println(joystick(BASE));
+
+  manualJoystickControl();
 }
 void manualJoystickControl(){
+  hand->run( joystick(HAND)/8 );
   //For loop through all the arm, and move them if need be
   for(short i = BASE; i <= WRIST; i++)
   {
     int vel =  joystick(i);
-    if(millis() % 1000 == 0) Serial.println(vel);
+    //if(millis() % 1000 == 0) //Serial.println(vel);
     arm[i]->setVelocity( vel );
     arm[i]->sync(sharedTimer);
     arm[i]->run();
   }
-  hand->run( joystick[HAND] );
 
 }
 
 int joystick(int whichJoystick) {
-  int x = analogRead(joyPins[whichJoystick]);
+  int x;
+  /*x = analogRead(joyPins[whichJoystick]);
   if(x < 350) {
-    return -500;
-  }else if (x > 650) return 500;
+    return 500;
+  }else if (x > 650) return -500;
   else return 0;
-
+  */
   static const int joystick_deadzone    =   42;
   static const int joystick_midpoint     =    512;
   //True if joystick is  being moved.
-  int y = analogRead(joyPins[whichJoystick])-joystick_midpoint;
+  x = analogRead(joyPins[whichJoystick])-joystick_midpoint;
   if(x < -joystick_deadzone || x > joystick_deadzone)
   {
-    return x;
+    return -x;
   }
   else {
     return 0;
@@ -111,6 +113,7 @@ int joystick(int whichJoystick) {
 }
 
 void manualJoyControlNoLimitSwitch(){
+  hand->run( joystick[HAND] );
   //For loop through all the arm, and move them if need be
   for(short i = BASE; i <= WRIST; i++)
   {
@@ -119,7 +122,6 @@ void manualJoyControlNoLimitSwitch(){
     arm[i]->setVelocity( joystick(i) );
     arm[i]->step();
   }
-  hand->run( joystick[HAND] );
 
 }
 void emergency_stop()

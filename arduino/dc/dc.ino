@@ -1,15 +1,20 @@
 #include "RoviDC.cpp"
-#include "config.cpp"
-const int joystick = A0;
+const int j = A0;
 
 RoviDC *endEffector;
 void setup() {
-  endEffector = new RoviDC(8,9,10);
-  pinMode(joystick, INPUT_PULLUP);
+  endEffector = new RoviDC(11,12,13);
+  pinMode(j, INPUT_PULLUP);
 }
 
 void loop() {
+  int x = analogRead(j)-512;
+  if(x < -40 || x > 40)
+  {
+    endEffector->run( -2*x );
+  }
+  else {
+    endEffector->run(0);
+  }
 
-  endEffector->run( mapJoy(analogRead(joystick)) );
-  
 }
