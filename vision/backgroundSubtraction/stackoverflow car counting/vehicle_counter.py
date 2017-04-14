@@ -10,10 +10,11 @@ import numpy as np
 CAR_COLOURS = [ (0,0,255), (0,106,255), (0,216,255), (0,255,182), (0,255,76)
         , (144,255,0), (255,255,0), (255,148,0), (255,0,178), (220,0,255) ]
 SERIAL_DEVICE = '/dev/ttyACM0'
+END_EFFECTOR_STOP_CHAR = 'E'
 
 ser = None
 try:
-    ser = serial.Serial(SERIAL_DEVICE, 9800)
+    ser = serial.Serial(SERIAL_DEVICE, 9600)
 except:
     ser = None
     print("Couldn't open serial port " + SERIAL_DEVICE)
@@ -202,7 +203,7 @@ class VehicleCounter(object):
                 self.vehicle_count += 1
                 vehicle.counted = True
                 if ser:
-                    ser.write('E')#trigger error message
+                    ser.write(END_EFFECTOR_STOP_CHAR)#trigger error message
                 self.log.info("Counted vehicle #%d (total count=%d)."
                         , vehicle.id, self.vehicle_count)
 
