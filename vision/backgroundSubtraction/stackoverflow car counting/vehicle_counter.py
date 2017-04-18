@@ -11,6 +11,8 @@ CAR_COLOURS = [ (0,0,255), (0,106,255), (0,216,255), (0,255,182), (0,255,76)
         , (144,255,0), (255,255,0), (255,148,0), (255,0,178), (220,0,255) ]
 SERIAL_DEVICE = '/dev/ttyACM0'
 END_EFFECTOR_STOP_CHAR = 'E'
+END_EFFECTOR_VETO_CHAR = 'V'
+WAIT_TIME = 1
 
 ser = None
 try:
@@ -206,6 +208,16 @@ class VehicleCounter(object):
                     ser.write(END_EFFECTOR_STOP_CHAR)#trigger error message
                 self.log.info("Counted vehicle #%d (total count=%d)."
                         , vehicle.id, self.vehicle_count)
+            e = cv2.waitKey(WAIT_TIME)
+            if e == 101:
+                print "Sending emergency stop signal"
+                if ser:
+                    ser.write(END_EFFECTOR_STOP_CHAR)#trigger error message
+            v = cv2.waitKey(WAIT_TIME)
+            if v == 118:
+                print "Sending emergency override signal"
+                if ser:
+                    ser.write(END_EFFECTOR_VETO_CHAR)
 
                 # Optionally draw the vehicles on an image
         if output_image is not None:
