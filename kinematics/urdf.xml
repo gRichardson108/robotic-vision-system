@@ -1,0 +1,34 @@
+<robot name="rovi">
+  <!-- Declarations for links that connect joints -->
+  <link name="base" />
+  <link name="upper" />
+  <link name="lower" />
+  <link name="hand" />
+  <link name="end" />
+
+  <!-- Joint specifications -->
+  <joint name="hip" type="continuous">
+    <parent link="base"/>
+    <child link="upper"/>
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <axis xyz="0 1 0" />
+  </joint>
+  <joint name="shoulder" type="continuous">
+    <parent link="upper"/>
+    <child link="lower"/>
+    <origin xyz="0 10 0" rpy="0 0 0" />
+    <axis xyz="1 0 0" />
+  </joint>
+  <joint name="elbow" type="continuous">
+    <parent link="lower"/>
+    <child link="hand"/>
+    <origin xyz="0 20 0" rpy="0 0 0" />
+    <axis xyz="1 0 0" />
+  </joint>
+  <joint name="wrist" type="continuous">
+    <parent link="hand"/>
+    <child link="end"/>
+    <origin xyz="0 30 0" rpy="0 0 0" />
+    <axis xyz="1 0 0" />
+  </joint>
+</robot>
