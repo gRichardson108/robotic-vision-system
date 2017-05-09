@@ -4,7 +4,7 @@ import cv2
 history = 10
 thresh = 8000
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 kernel = np.ones((2,2), np.uint8)
 fgbg = cv2.createBackgroundSubtractorKNN(history, thresh, True)
 fgbg.setShadowValue(0)

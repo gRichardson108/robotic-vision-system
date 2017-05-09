@@ -7,7 +7,7 @@ import sys
 import cv2
 import numpy as np
 
-from vehicle_counter import VehicleCounter
+from object_counter import ObjectCounter
 
 # ============================================================================
 
@@ -18,12 +18,12 @@ IMAGE_FILENAME_FORMAT = IMAGE_DIR + "/frame_%04d.png"
 # Support either video file or individual frames
 CAPTURE_FROM_VIDEO = True #False
 if CAPTURE_FROM_VIDEO:
-    IMAGE_SOURCE = 2#"traffic.avi" # Video file
+    IMAGE_SOURCE = 0
 else:
     IMAGE_SOURCE = IMAGE_FILENAME_FORMAT # Image sequence
 
 # Time to wait between frames, 0=forever
-WAIT_TIME = 1 # 250 # ms
+WAIT_TIME = 250 # 250 # ms
 
 LOG_TO_FILE = True
 
@@ -81,8 +81,8 @@ def get_centroid(x, y, w, h):
 
 # ============================================================================
 
-def detect_vehicles(fg_mask):
-    log = logging.getLogger("detect_vehicles")
+def detect_objects(fg_mask):
+    log = logging.getLogger("detect_objects")
 
     MIN_CONTOUR_WIDTH = 21
     MIN_CONTOUR_HEIGHT = 21
@@ -92,7 +92,7 @@ def detect_vehicles(fg_mask):
         , cv2.RETR_EXTERNAL
         , cv2.CHAIN_APPROX_SIMPLE)
 
-    log.debug("Found %d vehicle contours.", len(contours))
+    log.debug("Found %d object contours.", len(contours))
 
     matches = []
     for (i, contour) in enumerate(contours):
@@ -128,15 +128,15 @@ def filter_mask(fg_mask):
 
 # ============================================================================
 
-def process_frame(frame_number, frame, bg_subtractor, car_counter):
+def process_frame(frame_number, frame, bg_subtractor, object_counter):
     log = logging.getLogger("process_frame")
 
     # Create a copy of source frame to draw into
     processed = frame.copy()
 
-    # Draw dividing line -- we count cars as they cross this line.
-    #cv2.line(processed, (0, car_counter.divider), (frame.shape[1], car_counter.divider), DIVIDER_COLOUR, 1)
-    cv2.rectangle(processed, car_counter.divider[0], car_counter.divider[1],DIVIDER_COLOUR, 1)
+    # Draw dividing line -- we count objcts as they cross this line.
+    #cv2.line(processed, (0, object_counter.divider), (frame.shape[1], object_counter.divider), DIVIDER_COLOUR, 1)
+    cv2.rectangle(processed, object_counter.divider[0], object_counter.divider[1],DIVIDER_COLOUR, 1)
 
 
     # Remove the background
@@ -146,13 +146,13 @@ def process_frame(frame_number, frame, bg_subtractor, car_counter):
     save_frame(IMAGE_DIR + "/mask_%04d.png"
         , frame_number, fg_mask, "foreground mask for frame #%d")
 
-    matches = detect_vehicles(fg_mask)
+    matches = detect_objects(fg_mask)
 
-    log.debug("Found %d valid vehicle contours.", len(matches))
+    log.debug("Found %d valid object contours.", len(matches))
     for (i, match) in enumerate(matches):
         contour, centroid = match
 
-        log.debug("Valid vehicle contour #%d: centroid=%s, bounding_box=%s", i, centroid, contour)
+        log.debug("Valid object contour #%d: centroid=%s, bounding_box=%s", i, centroid, contour)
 
         x, y, w, h = contour
 
@@ -161,8 +161,8 @@ def process_frame(frame_number, frame, bg_subtractor, car_counter):
         cv2.rectangle(processed, (x, y), (x + w - 1, y + h - 1), BOUNDING_BOX_COLOUR, 1)
         cv2.circle(processed, centroid, 2, CENTROID_COLOUR, -1)
 
-    log.debug("Updating vehicle count...")
-    car_counter.update_count(matches, processed)
+    log.debug("Updating object count...")
+    object_counter.update_count(matches, processed)
 
     return processed
 
@@ -180,7 +180,7 @@ def main():
     if (default_bg):
         bg_subtractor.apply(default_bg, None, 1.0)
 
-    car_counter = None # Will be created after first frame is captured
+    object_counter = None # Will be created after first frame is captured
 
     # Set up image source
     log.debug("Initializing video capture device #%s...", IMAGE_SOURCE)
@@ -202,10 +202,10 @@ def main():
 
         log.debug("Got frame #%d: shape=%s", frame_number, frame.shape)
 
-        if car_counter is None:
+        if object_counter is None:
             # We do this here, so that we can initialize with actual frame size
-            log.debug("Creating vehicle counter...")
-            car_counter = VehicleCounter(frame.shape[:2],((frame.shape[1] * 1/ 10, frame.shape[0]*1/10), (frame.shape[1] * 9/ 10, frame.shape[0]*9/10)))
+            log.debug("Creating object counter...")
+            object_counter = ObjectCounter(frame.shape[:2],((frame.shape[1] * 1/ 10, frame.shape[0]*1/10), (frame.shape[1] * 9/ 10, frame.shape[0]*9/10)))
 
         # Archive raw frames from video to disk for later inspection/testing
         if CAPTURE_FROM_VIDEO:
@@ -213,7 +213,7 @@ def main():
                 , frame_number, frame, "source frame #%d")
 
         log.debug("Processing frame #%d...", frame_number)
-        processed = process_frame(frame_number, frame, bg_subtractor, car_counter)
+        processed = process_frame(frame_number, frame, bg_subtractor, object_counter)
 
         save_frame(IMAGE_DIR + "/processed_%04d.png"
             , frame_number, processed, "processed frame #%d")
@@ -228,7 +228,7 @@ def main():
             log.debug("ESC detected, stopping...")
             break
 
-        car_counter.update_keyboard_events(c)
+        object_counter.update_keyboard_events(c)
 
     log.debug("Closing video capture device...")
     cap.release()
