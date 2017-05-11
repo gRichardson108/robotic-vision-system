@@ -1,34 +1,101 @@
-<robot name="rovi">
-  <!-- Declarations for links that connect joints -->
-  <link name="base" />
-  <link name="upper" />
-  <link name="lower" />
-  <link name="hand" />
-  <link name="end" />
-
-  <!-- Joint specifications -->
-  <joint name="hip" type="continuous">
-    <parent link="base"/>
-    <child link="upper"/>
-    <origin xyz="0 0 0" rpy="0 0 0" />
-    <axis xyz="0 1 0" />
-  </joint>
-  <joint name="shoulder" type="continuous">
-    <parent link="upper"/>
-    <child link="lower"/>
-    <origin xyz="0 10 0" rpy="0 0 0" />
-    <axis xyz="1 0 0" />
-  </joint>
-  <joint name="elbow" type="continuous">
-    <parent link="lower"/>
-    <child link="hand"/>
-    <origin xyz="0 20 0" rpy="0 0 0" />
-    <axis xyz="1 0 0" />
-  </joint>
-  <joint name="wrist" type="continuous">
-    <parent link="hand"/>
-    <child link="end"/>
-    <origin xyz="0 30 0" rpy="0 0 0" />
-    <axis xyz="1 0 0" />
-  </joint>
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns="http://www.ros.org/wiki/urdf" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://raw.github.com/laas/urdf_validator/master file:urdf.xsd" name="rovi">
+    <!-- Declarations for links that connect joints -->
+    <link name="foot_link">
+      <visual>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+              <box size="1 1 1" />
+          </geometry>
+          <material name="a">
+              <color rgba="0 0 1 1" />
+          </material>a
+      </visual>
+    </link>
+    <link name="base_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="22.4 22.4 22.4" />
+            </geometry>
+            <material name="a">
+                <color rgba="0 0 1 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="shoulder_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="3 3 22.4" />
+            </geometry>
+            <material name="b">
+                <color rgba="0 1 1 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="elbow_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="3 3 27.9" />
+            </geometry>
+            <material name="c">
+                <color rgba="1 1 0 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="wrist_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="3 3 27.9" />
+            </geometry>
+            <material name="d">
+                <color rgba="1 0 1 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="hand_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="3 3 19.1" />
+            </geometry>
+            <material name="e">
+                <color rgba="1 1 1 1" />
+            </material>
+        </visual>
+    </link>
+    <!-- Joint specifications -->
+    <joint name="base" type="continuous">
+        <parent link="foot_link" />
+        <child link="base_link" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1" />
+    </joint>
+    <joint name="shoulder" type="continuous">
+        <parent link="base_link" />
+        <child link="shoulder_link" />
+        <origin xyz="0 0 -22.4 " rpy="0 0 0" />
+        <axis xyz="0 1 0" />
+    </joint>
+    <joint name="elbow" type="continuous">
+        <parent link="shoulder_link" />
+        <child link="elbow_link" />
+        <origin xyz="0 0 -27.9" rpy="0 0 0" />
+        <axis xyz="0 1 0" />
+    </joint>
+    <joint name="wrist" type="continuous">
+        <parent link="elbow_link" />
+        <child link="wrist_link" />
+        <origin xyz="0 0 -19.1" rpy="0 0 0" />
+        <axis xyz="0 1 0" />
+    </joint>
+    <joint name="hand" type="continuous">
+        <parent link="wrist_link" />
+        <child link="hand_link" />
+        <origin xyz="0 0 -19.1" rpy="0 0 0" />
+        <axis xyz="0 1 0" />
+    </joint>
 </robot>
